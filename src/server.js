@@ -38,6 +38,53 @@ app.post('/score/:id', (req, res) => {
   });
 });
 
+app.post('/expose-score/:id', (req, res) => {
+  const { id } = req.params;
+  const {
+    address,
+    rooms,
+    energyCertificate,
+    floor,
+    maintenanceFee,
+    constructionYear,
+    condition,
+    heatingType,
+    primaryEnergySource,
+    energyCertificateStatus,
+    energyCertificateType
+  } = req.body;
+
+  if (!req.body || typeof req.body !== 'object') {
+    return res.status(400).json({ error: 'Request body must be a JSON object' });
+  }
+
+  const scoreResult = computeScore({ address, rooms, energyClass: energyCertificate });
+
+  res.json({
+    id,
+    score: scoreResult.total,
+    breakdown: {
+      location: scoreResult.locationScore,
+      energy: scoreResult.energyScore,
+      rooms: scoreResult.roomScore
+    },
+    matchedLocation: scoreResult.matchedLocation,
+    input: {
+      address: address || null,
+      rooms: rooms || null,
+      energyCertificate: energyCertificate || null,
+      floor: floor || null,
+      maintenanceFee: maintenanceFee || null,
+      constructionYear: constructionYear || null,
+      condition: condition || null,
+      heatingType: heatingType || null,
+      primaryEnergySource: primaryEnergySource || null,
+      energyCertificateStatus: energyCertificateStatus || null,
+      energyCertificateType: energyCertificateType || null
+    }
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Scoring server listening on port ${PORT}`);
 });
