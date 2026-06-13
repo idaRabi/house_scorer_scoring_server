@@ -1,0 +1,13 @@
+{
+  "name": "house-scorer-scoring-server",
+  "version": "0.1.0",
+  "description": "Backend scoring server for house advertisements",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
