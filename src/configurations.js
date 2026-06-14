@@ -34,5 +34,13 @@ module.exports = {
   },
   maintenanceFeeRatioScore: 3,
   maintenanceFeeRatioMin: 3,
-  maintenanceFeeRatioMax: 5
+  maintenanceFeeRatioMax: 5,
+  supermarketScore200m: 20,
+  supermarketScore500m: 10,
+  supermarketScore1000m: 3,
+  transitScore200m: 20,
+  transitScore500m: 10,
+  transitScore1000m: 1,
+  commuteBaseMinutes: 60,
+  commuteScorePer5Minutes: 5
 };

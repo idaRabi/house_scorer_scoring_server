@@ -68,6 +68,20 @@ app.post('/expose-score/:id', async (req, res) => {
     return res.status(400).json({ error: 'Request body must be a JSON object' });
   }
 
+  let locationInfo = null;
+  let transitInfo = null;
+  let h3Index = null;
+
+  if (latitude != null && longitude != null) {
+    h3Index = h3.latLngToCell(latitude, longitude, 9);
+    const [li, tr] = await Promise.all([
+      locationService.getLocationInfo(latitude, longitude),
+      locationService.getWalkingDistanceToNearestStation(latitude, longitude)
+    ]);
+    locationInfo = li;
+    transitInfo = tr;
+  }
+
   const scoreResult = computeScore({
     address,
     rooms,
@@ -78,7 +92,7 @@ app.post('/expose-score/:id', async (req, res) => {
     heatingType,
     maintenanceFee,
     area
-  });
+  }, locationInfo);
 
   const response = {
     id,
@@ -90,7 +104,11 @@ app.post('/expose-score/:id', async (req, res) => {
       accessibility: scoreResult.accessibilityScore,
       construction: scoreResult.constructionScore,
       heatingType: scoreResult.heatingTypeScore,
-      maintenanceFee: scoreResult.maintenanceFeeScore
+      maintenanceFee: scoreResult.maintenanceFeeScore,
+      supermarket: scoreResult.supermarketScore,
+      transit: scoreResult.transitScore,
+      commuteWork: scoreResult.commuteWorkScore,
+      commuteWifeWork: scoreResult.commuteWifeWorkScore
     },
     matchedLocation: scoreResult.matchedLocation,
     explanation: scoreResult.explanation,
@@ -111,19 +129,10 @@ app.post('/expose-score/:id', async (req, res) => {
       latitude: latitude || null,
       longitude: longitude || null
     },
-    transit: null,
-    locationInfo: null,
-    h3Index: null
+    transit: transitInfo,
+    locationInfo: locationInfo,
+    h3Index: h3Index
   };
-
-  if (latitude != null && longitude != null) {
-    response.h3Index = h3.latLngToCell(latitude, longitude, 9);
-    const locInfoPromise = locationService.getLocationInfo(latitude, longitude);
-    const walkingPromise = locationService.getWalkingDistanceToNearestStation(latitude, longitude);
-    const [locInfo, transitResult] = await Promise.all([locInfoPromise, walkingPromise]);
-    response.locationInfo = locInfo;
-    response.transit = transitResult;
-  }
 
   store.save(id, response);
 
@@ -138,6 +147,21 @@ app.get('/expose-score/:id', async (req, res) => {
   }
 
   const input = cached.input || {};
+
+  let transit = cached.transit || null;
+  let locationInfo = cached.locationInfo || null;
+
+  if (input.latitude != null && input.longitude != null) {
+    if (!transit || !locationInfo) {
+      const [li, tr] = await Promise.all([
+        locationService.getLocationInfo(input.latitude, input.longitude),
+        locationService.getWalkingDistanceToNearestStation(input.latitude, input.longitude)
+      ]);
+      if (!locationInfo) locationInfo = li;
+      if (!transit) transit = tr;
+    }
+  }
+
   const scoreResult = computeScore({
     address: input.address,
     rooms: input.rooms,
@@ -148,20 +172,7 @@ app.get('/expose-score/:id', async (req, res) => {
     heatingType: input.heatingType,
     maintenanceFee: input.maintenanceFee,
     area: input.area
-  });
-
-  let transit = cached.transit || null;
-  let locationInfo = cached.locationInfo || null;
-
-  if (input.latitude != null && input.longitude != null) {
-    if (!transit || !locationInfo) {
-      const locInfoPromise = locationService.getLocationInfo(input.latitude, input.longitude);
-      const walkingPromise = locationService.getWalkingDistanceToNearestStation(input.latitude, input.longitude);
-      const [li, tr] = await Promise.all([locInfoPromise, walkingPromise]);
-      if (!locationInfo) locationInfo = li;
-      if (!transit) transit = tr;
-    }
-  }
+  }, locationInfo);
 
   const response = {
     id,
@@ -173,7 +184,11 @@ app.get('/expose-score/:id', async (req, res) => {
       accessibility: scoreResult.accessibilityScore,
       construction: scoreResult.constructionScore,
       heatingType: scoreResult.heatingTypeScore,
-      maintenanceFee: scoreResult.maintenanceFeeScore
+      maintenanceFee: scoreResult.maintenanceFeeScore,
+      supermarket: scoreResult.supermarketScore,
+      transit: scoreResult.transitScore,
+      commuteWork: scoreResult.commuteWorkScore,
+      commuteWifeWork: scoreResult.commuteWifeWorkScore
     },
     matchedLocation: scoreResult.matchedLocation,
     explanation: scoreResult.explanation,

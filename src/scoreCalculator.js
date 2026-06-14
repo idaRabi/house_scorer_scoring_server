@@ -6,7 +6,7 @@ function loadConfig() {
   return require('./configurations');
 }
 
-function computeScore(listing) {
+function computeScore(listing, locationInfo) {
   const config = loadConfig();
   let locationScore = 0;
   let matchedLocation = null;
@@ -136,7 +136,114 @@ function computeScore(listing) {
     maintenanceFeeExplanation = 'No maintenance fee or area provided (+0)';
   }
 
-  const total = locationScore + energyScore + roomScore + accessibilityScore + constructionScore + heatingTypeScore + maintenanceFeeScore;
+  let supermarketScore = 0;
+  let supermarketExplanation = null;
+  let transitScore = 0;
+  let transitExplanation = null;
+  let commuteWorkScore = 0;
+  let commuteWorkExplanation = null;
+  let commuteWifeWorkScore = 0;
+  let commuteWifeWorkExplanation = null;
+
+  if (locationInfo) {
+    // Supermarkets
+    if (locationInfo.supermarkets) {
+      let bestRadius = null;
+      for (const brand of Object.keys(locationInfo.supermarkets)) {
+        const b = locationInfo.supermarkets[brand];
+        if (b.within200m && b.within200m.count > 0) {
+          bestRadius = 200;
+          break;
+        }
+        if (b.within500m && b.within500m.count > 0) {
+          if (bestRadius == null || bestRadius > 500) bestRadius = 500;
+        }
+        if (b.within1000m && b.within1000m.count > 0) {
+          if (bestRadius == null) bestRadius = 1000;
+        }
+      }
+      if (bestRadius === 200) {
+        supermarketScore = config.supermarketScore200m || 0;
+        supermarketExplanation = 'Supermarket within 200m (+' + supermarketScore + ')';
+      } else if (bestRadius === 500) {
+        supermarketScore = config.supermarketScore500m || 0;
+        supermarketExplanation = 'Supermarket within 500m (+' + supermarketScore + ')';
+      } else if (bestRadius === 1000) {
+        supermarketScore = config.supermarketScore1000m || 0;
+        supermarketExplanation = 'Supermarket within 1km (+' + supermarketScore + ')';
+      } else {
+        supermarketExplanation = 'No supermarket within 1km (+0)';
+      }
+    } else {
+      supermarketExplanation = 'No supermarket data available (+0)';
+    }
+
+    // Transit stations
+    if (locationInfo.transitStations) {
+      const ts = locationInfo.transitStations;
+      if (ts.within200m && ts.within200m.count > 0) {
+        transitScore = config.transitScore200m || 0;
+        transitExplanation = 'Transit station(s) within 200m (+' + transitScore + ')';
+      } else if (ts.within500m && ts.within500m.count > 0) {
+        transitScore = config.transitScore500m || 0;
+        transitExplanation = 'Transit station(s) within 500m (+' + transitScore + ')';
+      } else if (ts.within1000m && ts.within1000m.count > 0) {
+        transitScore = config.transitScore1000m || 0;
+        transitExplanation = 'Transit station(s) within 1km (+' + transitScore + ')';
+      } else {
+        transitExplanation = 'No transit station within 1km (+0)';
+      }
+    } else {
+      transitExplanation = 'No transit data available (+0)';
+    }
+
+    // Commute
+    if (locationInfo.commute) {
+      const baseMinutes = config.commuteBaseMinutes || 60;
+      const per5 = config.commuteScorePer5Minutes || 5;
+
+      ['work', 'wife_work'].forEach((label) => {
+        const c = locationInfo.commute[label];
+        if (c && c.durationSeconds != null) {
+          const minutes = c.durationSeconds / 60;
+          if (minutes < baseMinutes) {
+            const blocks = Math.floor((baseMinutes - minutes) / 5);
+            const score = blocks * per5;
+            const labelText = label === 'work' ? 'Commute to work' : 'Commute to wife work';
+            const explanation = labelText + ': ' + c.durationText + ' (' + blocks + 'x5min under ' + baseMinutes + 'min, +' + score + ')';
+            if (label === 'work') {
+              commuteWorkScore = score;
+              commuteWorkExplanation = explanation;
+            } else {
+              commuteWifeWorkScore = score;
+              commuteWifeWorkExplanation = explanation;
+            }
+          } else {
+            const labelText = label === 'work' ? 'Commute to work' : 'Commute to wife work';
+            const explanation = labelText + ': ' + c.durationText + ' (over ' + baseMinutes + 'min, +0)';
+            if (label === 'work') {
+              commuteWorkExplanation = explanation;
+            } else {
+              commuteWifeWorkExplanation = explanation;
+            }
+          }
+        } else {
+          const labelText = label === 'work' ? 'Commute to work' : 'Commute to wife work';
+          const explanation = labelText + ': no data (+0)';
+          if (label === 'work') {
+            commuteWorkExplanation = explanation;
+          } else {
+            commuteWifeWorkExplanation = explanation;
+          }
+        }
+      });
+    } else {
+      commuteWorkExplanation = 'Commute to work: no data (+0)';
+      commuteWifeWorkExplanation = 'Commute to wife work: no data (+0)';
+    }
+  }
+
+  const total = locationScore + energyScore + roomScore + accessibilityScore + constructionScore + heatingTypeScore + maintenanceFeeScore + supermarketScore + transitScore + commuteWorkScore + commuteWifeWorkScore;
 
   return {
     total,
@@ -148,6 +255,10 @@ function computeScore(listing) {
     constructionScore,
     heatingTypeScore,
     maintenanceFeeScore,
+    supermarketScore,
+    transitScore,
+    commuteWorkScore,
+    commuteWifeWorkScore,
     explanation: {
       location: locationExplanation,
       energy: energyExplanation,
@@ -155,7 +266,11 @@ function computeScore(listing) {
       accessibility: accessibilityExplanation,
       construction: constructionExplanation,
       heatingType: heatingTypeExplanation,
-      maintenanceFee: maintenanceFeeExplanation
+      maintenanceFee: maintenanceFeeExplanation,
+      supermarket: supermarketExplanation,
+      transit: transitExplanation,
+      commuteWork: commuteWorkExplanation,
+      commuteWifeWork: commuteWifeWorkExplanation
     }
   };
 }
