@@ -111,6 +111,15 @@ app.post('/expose-score/:id', (req, res) => {
   res.json(response);
 });
 
+app.get('/expose-score/:id', (req, res) => {
+  const { id } = req.params;
+  const result = store.load(id);
+  if (!result) {
+    return res.status(404).json({ error: 'Score not found for id: ' + id });
+  }
+  res.json(result);
+});
+
 app.listen(PORT, () => {
   console.log(`Scoring server listening on port ${PORT}`);
 });
