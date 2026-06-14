@@ -1,8 +1,10 @@
 const express = require('express');
 const { computeScore } = require('./scoreCalculator');
+const ScoreStore = require('./scoreStore');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const store = new ScoreStore();
 
 app.use(express.json());
 
@@ -73,7 +75,7 @@ app.post('/expose-score/:id', (req, res) => {
     area
   });
 
-  res.json({
+  const response = {
     id,
     score: scoreResult.total,
     breakdown: {
@@ -102,7 +104,11 @@ app.post('/expose-score/:id', (req, res) => {
       energyCertificateType: energyCertificateType || null,
       hasElevator: hasElevator || null
     }
-  });
+  };
+
+  store.save(id, response);
+
+  res.json(response);
 });
 
 app.listen(PORT, () => {
