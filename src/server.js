@@ -52,7 +52,8 @@ app.post('/expose-score/:id', (req, res) => {
     primaryEnergySource,
     energyCertificateStatus,
     energyCertificateType,
-    hasElevator
+    hasElevator,
+    area
   } = req.body;
 
   if (!req.body || typeof req.body !== 'object') {
@@ -66,7 +67,9 @@ app.post('/expose-score/:id', (req, res) => {
     hasElevator,
     floor,
     constructionYear,
-    heatingType
+    heatingType,
+    maintenanceFee,
+    area
   });
 
   res.json({
@@ -78,7 +81,8 @@ app.post('/expose-score/:id', (req, res) => {
       rooms: scoreResult.roomScore,
       accessibility: scoreResult.accessibilityScore,
       construction: scoreResult.constructionScore,
-      heatingType: scoreResult.heatingTypeScore
+      heatingType: scoreResult.heatingTypeScore,
+      maintenanceFee: scoreResult.maintenanceFeeScore
     },
     matchedLocation: scoreResult.matchedLocation,
     input: {
@@ -87,6 +91,7 @@ app.post('/expose-score/:id', (req, res) => {
       energyCertificate: energyCertificate || null,
       floor: floor || null,
       maintenanceFee: maintenanceFee || null,
+      area: area || null,
       constructionYear: constructionYear || null,
       condition: condition || null,
       heatingType: heatingType || null,

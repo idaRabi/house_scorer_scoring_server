@@ -31,7 +31,10 @@ const defaultConfig = {
     "Gasetagenheizung": 1,
     "Ölheizung": -2,
     "Nachtspeicher": -3
-  }
+  },
+  maintenanceFeeRatioScore: 3,
+  maintenanceFeeRatioMin: 3,
+  maintenanceFeeRatioMax: 5
 };
 
 function computeScore(listing, config = defaultConfig) {
@@ -106,7 +109,19 @@ function computeScore(listing, config = defaultConfig) {
     }
   }
 
-  const total = locationScore + energyScore + roomScore + accessibilityScore + constructionScore + heatingTypeScore;
+  let maintenanceFeeScore = 0;
+  if (listing.maintenanceFee && listing.area) {
+    const fee = parseFloat(listing.maintenanceFee);
+    const areaVal = parseFloat(listing.area);
+    if (!isNaN(fee) && !isNaN(areaVal) && areaVal > 0) {
+      const ratio = fee / areaVal;
+      if (ratio >= config.maintenanceFeeRatioMin && ratio <= config.maintenanceFeeRatioMax) {
+        maintenanceFeeScore = config.maintenanceFeeRatioScore;
+      }
+    }
+  }
+
+  const total = locationScore + energyScore + roomScore + accessibilityScore + constructionScore + heatingTypeScore + maintenanceFeeScore;
 
   return {
     total,
@@ -116,7 +131,8 @@ function computeScore(listing, config = defaultConfig) {
     roomScore,
     accessibilityScore,
     constructionScore,
-    heatingTypeScore
+    heatingTypeScore,
+    maintenanceFeeScore
   };
 }
 
