@@ -34,7 +34,8 @@ app.post('/score/:id', (req, res) => {
       energy: scoreResult.energyScore,
       rooms: scoreResult.roomScore
     },
-    matchedLocation: scoreResult.matchedLocation
+    matchedLocation: scoreResult.matchedLocation,
+    explanation: scoreResult.explanation
   });
 });
 
@@ -85,6 +86,7 @@ app.post('/expose-score/:id', (req, res) => {
       maintenanceFee: scoreResult.maintenanceFeeScore
     },
     matchedLocation: scoreResult.matchedLocation,
+    explanation: scoreResult.explanation,
     input: {
       address: address || null,
       rooms: rooms || null,
