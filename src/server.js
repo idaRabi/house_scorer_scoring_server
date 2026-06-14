@@ -13,7 +13,7 @@ app.use(express.json());
 
 app.use(function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
@@ -131,7 +131,8 @@ app.post('/expose-score/:id', async (req, res) => {
     },
     transit: transitInfo,
     locationInfo: locationInfo,
-    h3Index: h3Index
+    h3Index: h3Index,
+    visited: false
   };
 
   store.save(id, response);
@@ -195,7 +196,8 @@ app.get('/expose-score/:id', async (req, res) => {
     input,
     transit,
     locationInfo,
-    h3Index: cached.h3Index || (input.latitude != null && input.longitude != null ? h3.latLngToCell(input.latitude, input.longitude, 9) : null)
+    h3Index: cached.h3Index || (input.latitude != null && input.longitude != null ? h3.latLngToCell(input.latitude, input.longitude, 9) : null),
+    visited: cached.visited || false
   };
 
   if (response.score !== cached.score || response.transit !== cached.transit || response.h3Index !== cached.h3Index || response.locationInfo !== cached.locationInfo) {
@@ -203,6 +205,27 @@ app.get('/expose-score/:id', async (req, res) => {
   }
 
   res.json(response);
+});
+
+app.put('/expose-score/:id/visited', (req, res) => {
+  const { id } = req.params;
+  const { visited } = req.body;
+  const cached = store.load(id);
+  if (!cached) {
+    return res.status(404).json({ error: 'Score not found for id: ' + id });
+  }
+  cached.visited = visited === true;
+  store.save(id, cached);
+  res.json({ id, visited: cached.visited });
+});
+
+app.get('/expose-score/:id/visited', (req, res) => {
+  const { id } = req.params;
+  const cached = store.load(id);
+  if (!cached) {
+    return res.status(404).json({ error: 'Score not found for id: ' + id });
+  }
+  res.json({ id, visited: cached.visited || false });
 });
 
 app.listen(PORT, () => {
