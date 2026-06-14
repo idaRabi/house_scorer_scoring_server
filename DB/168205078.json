@@ -1,0 +1,41 @@
+{
+  "id": "168205078",
+  "savedAt": "2026-06-14T18:06:40.684Z",
+  "score": 48,
+  "breakdown": {
+    "location": 0,
+    "energy": 5,
+    "rooms": 8,
+    "accessibility": 1,
+    "construction": 30,
+    "heatingType": 4,
+    "maintenanceFee": 0
+  },
+  "matchedLocation": null,
+  "explanation": {
+    "location": "No matched location (+0)",
+    "energy": "Energy class: C (+5)",
+    "rooms": "4 rooms (+8)",
+    "accessibility": "First floor, no elevator (+1)",
+    "construction": "Built in 2010s (6 decades after 1950, +30)",
+    "heatingType": "Heating type: Fernwärme (+4)",
+    "maintenanceFee": "Maintenance fee ratio 2.8 €/m² outside range [3, 5] (+0)"
+  },
+  "input": {
+    "address": "Linienstraße 142, 10115 Berlin",
+    "rooms": "4",
+    "energyCertificate": "C",
+    "floor": "1 von 1",
+    "maintenanceFee": "356 €",
+    "area": "126  m²",
+    "constructionYear": "2016",
+    "condition": "Neuwertig",
+    "heatingType": "Fernwärme",
+    "primaryEnergySource": "Fernwärme",
+    "energyCertificateStatus": "liegt vor",
+    "energyCertificateType": "Bedarfsausweis",
+    "hasElevator": null,
+    "latitude": 52.5267,
+    "longitude": 13.39049
+  }
+}

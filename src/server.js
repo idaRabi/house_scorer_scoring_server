@@ -56,7 +56,9 @@ app.post('/expose-score/:id', (req, res) => {
     energyCertificateStatus,
     energyCertificateType,
     hasElevator,
-    area
+    area,
+    latitude,
+    longitude
   } = req.body;
 
   if (!req.body || typeof req.body !== 'object') {
@@ -102,7 +104,9 @@ app.post('/expose-score/:id', (req, res) => {
       primaryEnergySource: primaryEnergySource || null,
       energyCertificateStatus: energyCertificateStatus || null,
       energyCertificateType: energyCertificateType || null,
-      hasElevator: hasElevator || null
+      hasElevator: hasElevator || null,
+      latitude: latitude || null,
+      longitude: longitude || null
     }
   };
 
@@ -113,11 +117,46 @@ app.post('/expose-score/:id', (req, res) => {
 
 app.get('/expose-score/:id', (req, res) => {
   const { id } = req.params;
-  const result = store.load(id);
-  if (!result) {
+  const cached = store.load(id);
+  if (!cached) {
     return res.status(404).json({ error: 'Score not found for id: ' + id });
   }
-  res.json(result);
+
+  const input = cached.input || {};
+  const scoreResult = computeScore({
+    address: input.address,
+    rooms: input.rooms,
+    energyClass: input.energyCertificate,
+    hasElevator: input.hasElevator,
+    floor: input.floor,
+    constructionYear: input.constructionYear,
+    heatingType: input.heatingType,
+    maintenanceFee: input.maintenanceFee,
+    area: input.area
+  });
+
+  const response = {
+    id,
+    score: scoreResult.total,
+    breakdown: {
+      location: scoreResult.locationScore,
+      energy: scoreResult.energyScore,
+      rooms: scoreResult.roomScore,
+      accessibility: scoreResult.accessibilityScore,
+      construction: scoreResult.constructionScore,
+      heatingType: scoreResult.heatingTypeScore,
+      maintenanceFee: scoreResult.maintenanceFeeScore
+    },
+    matchedLocation: scoreResult.matchedLocation,
+    explanation: scoreResult.explanation,
+    input
+  };
+
+  if (response.score !== cached.score) {
+    store.save(id, response);
+  }
+
+  res.json(response);
 });
 
 app.listen(PORT, () => {
