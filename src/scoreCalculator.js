@@ -18,6 +18,19 @@ const defaultConfig = {
     "5": 10,
     "6": 12,
     "7": 14
+  },
+  elevatorScore: 3,
+  groundFloorScore: 2,
+  firstFloorScore: 1,
+  constructionDecadeBase: 1950,
+  constructionDecadeScore: 5,
+  heatingTypeScores: {
+    "Wärmepumpe": 5,
+    "Fernwärme": 4,
+    "Zentralheizung": 3,
+    "Gasetagenheizung": 1,
+    "Ölheizung": -2,
+    "Nachtspeicher": -3
   }
 };
 
@@ -63,15 +76,63 @@ function computeScore(listing, config = defaultConfig) {
     }
   }
 
-  const total = locationScore + energyScore + roomScore;
+  let accessibilityScore = 0;
+  if (listing.hasElevator === true) {
+    accessibilityScore = config.elevatorScore || 0;
+  } else {
+    const floorNum = parseFloor(listing.floor);
+    if (floorNum === 0) {
+      accessibilityScore = config.groundFloorScore || 0;
+    } else if (floorNum === 1) {
+      accessibilityScore = config.firstFloorScore || 0;
+    }
+  }
+
+  let constructionScore = 0;
+  if (listing.constructionYear) {
+    const year = parseInt(listing.constructionYear, 10);
+    if (!isNaN(year)) {
+      const decade = Math.floor(year / 10) * 10;
+      const decades = Math.max(0, Math.floor((decade - config.constructionDecadeBase) / 10));
+      constructionScore = decades * config.constructionDecadeScore;
+    }
+  }
+
+  let heatingTypeScore = 0;
+  if (listing.heatingType && config.heatingTypeScores) {
+    const htScore = config.heatingTypeScores[listing.heatingType];
+    if (typeof htScore === 'number') {
+      heatingTypeScore = htScore;
+    }
+  }
+
+  const total = locationScore + energyScore + roomScore + accessibilityScore + constructionScore + heatingTypeScore;
 
   return {
     total,
     matchedLocation,
     locationScore,
     energyScore,
-    roomScore
+    roomScore,
+    accessibilityScore,
+    constructionScore,
+    heatingTypeScore
   };
+}
+
+function parseFloor(floor) {
+  if (floor === null || floor === undefined) {
+    return null;
+  }
+  const s = String(floor).trim().toLowerCase();
+  if (s === 'eg' || s === 'erdgeschoss' || s === 'ground floor') {
+    return 0;
+  }
+  const match = s.match(/(\d+)/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  return null;
 }
 
 module.exports = { computeScore, defaultConfig };

@@ -59,7 +59,15 @@ app.post('/expose-score/:id', (req, res) => {
     return res.status(400).json({ error: 'Request body must be a JSON object' });
   }
 
-  const scoreResult = computeScore({ address, rooms, energyClass: energyCertificate });
+  const scoreResult = computeScore({
+    address,
+    rooms,
+    energyClass: energyCertificate,
+    hasElevator,
+    floor,
+    constructionYear,
+    heatingType
+  });
 
   res.json({
     id,
@@ -67,7 +75,10 @@ app.post('/expose-score/:id', (req, res) => {
     breakdown: {
       location: scoreResult.locationScore,
       energy: scoreResult.energyScore,
-      rooms: scoreResult.roomScore
+      rooms: scoreResult.roomScore,
+      accessibility: scoreResult.accessibilityScore,
+      construction: scoreResult.constructionScore,
+      heatingType: scoreResult.heatingTypeScore
     },
     matchedLocation: scoreResult.matchedLocation,
     input: {
@@ -82,7 +93,6 @@ app.post('/expose-score/:id', (req, res) => {
       primaryEnergySource: primaryEnergySource || null,
       energyCertificateStatus: energyCertificateStatus || null,
       energyCertificateType: energyCertificateType || null,
-      hasElevator: hasElevator || null,
       hasElevator: hasElevator || null
     }
   });
