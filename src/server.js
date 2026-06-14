@@ -1,10 +1,13 @@
 const express = require('express');
+const h3 = require('h3-js');
 const { computeScore } = require('./scoreCalculator');
 const ScoreStore = require('./scoreStore');
+const LocationService = require('./locationService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const store = new ScoreStore();
+const locationService = new LocationService();
 
 app.use(express.json());
 
@@ -41,7 +44,7 @@ app.post('/score/:id', (req, res) => {
   });
 });
 
-app.post('/expose-score/:id', (req, res) => {
+app.post('/expose-score/:id', async (req, res) => {
   const { id } = req.params;
   const {
     address,
@@ -107,15 +110,23 @@ app.post('/expose-score/:id', (req, res) => {
       hasElevator: hasElevator || null,
       latitude: latitude || null,
       longitude: longitude || null
-    }
+    },
+    transit: null,
+    h3Index: null
   };
+
+  if (latitude != null && longitude != null) {
+    response.h3Index = h3.latLngToCell(latitude, longitude, 9);
+    const transitResult = await locationService.getWalkingDistanceToNearestStation(latitude, longitude);
+    response.transit = transitResult;
+  }
 
   store.save(id, response);
 
   res.json(response);
 });
 
-app.get('/expose-score/:id', (req, res) => {
+app.get('/expose-score/:id', async (req, res) => {
   const { id } = req.params;
   const cached = store.load(id);
   if (!cached) {
@@ -135,6 +146,11 @@ app.get('/expose-score/:id', (req, res) => {
     area: input.area
   });
 
+  let transit = cached.transit || null;
+  if (!transit && input.latitude != null && input.longitude != null) {
+    transit = await locationService.getWalkingDistanceToNearestStation(input.latitude, input.longitude);
+  }
+
   const response = {
     id,
     score: scoreResult.total,
@@ -149,10 +165,12 @@ app.get('/expose-score/:id', (req, res) => {
     },
     matchedLocation: scoreResult.matchedLocation,
     explanation: scoreResult.explanation,
-    input
+    input,
+    transit,
+    h3Index: cached.h3Index || (input.latitude != null && input.longitude != null ? h3.latLngToCell(input.latitude, input.longitude, 9) : null)
   };
 
-  if (response.score !== cached.score) {
+  if (response.score !== cached.score || response.transit !== cached.transit || response.h3Index !== cached.h3Index) {
     store.save(id, response);
   }
 
