@@ -112,12 +112,16 @@ app.post('/expose-score/:id', async (req, res) => {
       longitude: longitude || null
     },
     transit: null,
+    locationInfo: null,
     h3Index: null
   };
 
   if (latitude != null && longitude != null) {
     response.h3Index = h3.latLngToCell(latitude, longitude, 9);
-    const transitResult = await locationService.getWalkingDistanceToNearestStation(latitude, longitude);
+    const locInfoPromise = locationService.getLocationInfo(latitude, longitude);
+    const walkingPromise = locationService.getWalkingDistanceToNearestStation(latitude, longitude);
+    const [locInfo, transitResult] = await Promise.all([locInfoPromise, walkingPromise]);
+    response.locationInfo = locInfo;
     response.transit = transitResult;
   }
 
@@ -147,8 +151,16 @@ app.get('/expose-score/:id', async (req, res) => {
   });
 
   let transit = cached.transit || null;
-  if (!transit && input.latitude != null && input.longitude != null) {
-    transit = await locationService.getWalkingDistanceToNearestStation(input.latitude, input.longitude);
+  let locationInfo = cached.locationInfo || null;
+
+  if (input.latitude != null && input.longitude != null) {
+    if (!transit || !locationInfo) {
+      const locInfoPromise = locationService.getLocationInfo(input.latitude, input.longitude);
+      const walkingPromise = locationService.getWalkingDistanceToNearestStation(input.latitude, input.longitude);
+      const [li, tr] = await Promise.all([locInfoPromise, walkingPromise]);
+      if (!locationInfo) locationInfo = li;
+      if (!transit) transit = tr;
+    }
   }
 
   const response = {
@@ -167,10 +179,11 @@ app.get('/expose-score/:id', async (req, res) => {
     explanation: scoreResult.explanation,
     input,
     transit,
+    locationInfo,
     h3Index: cached.h3Index || (input.latitude != null && input.longitude != null ? h3.latLngToCell(input.latitude, input.longitude, 9) : null)
   };
 
-  if (response.score !== cached.score || response.transit !== cached.transit || response.h3Index !== cached.h3Index) {
+  if (response.score !== cached.score || response.transit !== cached.transit || response.h3Index !== cached.h3Index || response.locationInfo !== cached.locationInfo) {
     store.save(id, response);
   }
 
