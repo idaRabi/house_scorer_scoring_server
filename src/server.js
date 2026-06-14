@@ -51,7 +51,8 @@ app.post('/expose-score/:id', (req, res) => {
     heatingType,
     primaryEnergySource,
     energyCertificateStatus,
-    energyCertificateType
+    energyCertificateType,
+    hasElevator
   } = req.body;
 
   if (!req.body || typeof req.body !== 'object') {
@@ -80,7 +81,9 @@ app.post('/expose-score/:id', (req, res) => {
       heatingType: heatingType || null,
       primaryEnergySource: primaryEnergySource || null,
       energyCertificateStatus: energyCertificateStatus || null,
-      energyCertificateType: energyCertificateType || null
+      energyCertificateType: energyCertificateType || null,
+      hasElevator: hasElevator || null,
+      hasElevator: hasElevator || null
     }
   });
 });
